@@ -54,6 +54,7 @@ enum Token {
 
 enum TokenizerError {
     KeywordOrIdentifierNotAscii,
+    OperatorNotClosed
 }
 
 fn tokenize(sql: &str) {
@@ -106,6 +107,27 @@ fn tokenize(sql: &str) {
             '\n' => {
                 tokens.push(Token::Whitespace(Whitespace::Newline));
                 chars.next();
+            }
+            '\r' => match chars.peek() {
+                Some('\n') => {
+                    chars.next();
+                    tokens.push(Token::Whitespace(Whitespace::Newline));
+                },
+                _ => tokens.push(Token::Whitespace(Whitespace::Newline))
+            }
+            '<' => match chars.peek() {
+                Some('=') => {
+                    chars.next();
+                    tokens.push(Token::LtEq);
+                },
+                _ => tokens.push(Token::Lt)
+            }
+            '>' => match chars.peek() {
+                Some('=') => {
+                    chars.next();
+                    tokens.push(Token::GtEq);
+                },
+                _ => tokens.push(Token::Gt)
             }
         }
     }
