@@ -155,6 +155,7 @@ fn tokenize_string(chars: &mut Peekable<Chars>, tokens: &mut Vec<Token>) -> Resu
     while let Some(&ch) = chars.peek() {
         chars.next();
         if ch == quote_symbol {
+            tokens.push(Token::String(string));
             return Ok(());
         }
         string.push(ch);
