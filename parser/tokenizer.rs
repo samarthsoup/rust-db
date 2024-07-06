@@ -93,6 +93,20 @@ fn tokenize(sql: &str) {
                 tokens.push(Keyword::Number(current_token.into()));
                 current_token.clear();
             }
+            ' ' => {
+                tokens.push(Token::Whitespace(Whitespace::Space));
+                chars.next();
+            }
+
+            '\t' => {
+                tokens.push(Token::Whitespace(Whitespace::Tab));
+                chars.next();
+            }
+
+            '\n' => {
+                tokens.push(Token::Whitespace(Whitespace::Newline));
+                chars.next();
+            }
         }
     }
 
