@@ -129,6 +129,29 @@ fn tokenize(sql: &str) {
                 },
                 _ => tokens.push(Token::Gt)
             }
+            '*' => {
+                chars.next();
+                tokens.push(Token::Mul)
+            }
+            '/' => {
+                chars.next();
+                tokens.push(Token::Div)
+            }
+
+            '+' => {
+                chars.next();
+                tokens.push(Token::Plus)
+            }
+
+            '-' => {
+                chars.next();
+                tokens.push(Token::Minus)
+            }
+
+            '=' => {
+                chars.next();
+                tokens.push(Token::Eq)
+            }
         }
     }
 
