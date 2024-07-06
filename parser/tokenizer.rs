@@ -79,6 +79,20 @@ fn tokenize(sql: &str) {
                 tokens.push(token_variant);
                 current_token.clear();
             }
+            '0'..='9' => {
+                current_token.push(ch);
+                chars.next();
+                while let Some(&next_ch) = chars.peek() {
+                    if next_ch.is_numeric() {
+                        current_token.push(next_ch);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                } 
+                tokens.push(Keyword::Number(current_token.into()));
+                current_token.clear();
+            }
         }
     }
 
