@@ -54,13 +54,15 @@ enum Token {
 
 enum TokenizerError {
     KeywordOrIdentifierNotAscii,
-    OperatorNotClosed
+    OperatorNotClosed(Token),
+    UnexpectedAfterOperator{unexpected: char, operator: Token}
 }
 
 fn tokenize(sql: &str) {
     let mut tokens = Vec::new();
     let mut current_token = String::new();
     let mut chars = sql.chars().peekable();
+    let mut errata = Vec::new();
     
     while let Some(&ch) = chars.peek() {
         match ch {
@@ -94,67 +96,48 @@ fn tokenize(sql: &str) {
                 tokens.push(Keyword::Number(current_token.into()));
                 current_token.clear();
             }
-            ' ' => {
-                tokens.push(Token::Whitespace(Whitespace::Space));
-                chars.next();
-            }
-
-            '\t' => {
-                tokens.push(Token::Whitespace(Whitespace::Tab));
-                chars.next();
-            }
-
-            '\n' => {
-                tokens.push(Token::Whitespace(Whitespace::Newline));
-                chars.next();
-            }
+            ' ' => tokenizer_consume_push(Token::Whitespace(Whitespace::Space), &mut chars),
+            '\t' => tokenizer_consume_push(Token::Whitespace(Whitespace::Tab), &mut chars),
+            '\n' => tokenizer_consume_push(Token::Whitespace(Whitespace::Newline), &mut chars),
             '\r' => match chars.peek() {
-                Some('\n') => {
-                    chars.next();
-                    tokens.push(Token::Whitespace(Whitespace::Newline));
-                },
+                Some('\n') => tokenizer_consume_push(Token::Whitespace(Whitespace::Newline), &mut chars),
                 _ => tokens.push(Token::Whitespace(Whitespace::Newline))
             }
             '<' => match chars.peek() {
-                Some('=') => {
-                    chars.next();
-                    tokens.push(Token::LtEq);
-                },
+                Some('=') => tokenizer_consume_push(Token::LtEq, &mut chars),
                 _ => tokens.push(Token::Lt)
             }
             '>' => match chars.peek() {
-                Some('=') => {
-                    chars.next();
-                    tokens.push(Token::GtEq);
-                },
+                Some('=') => tokenizer_consume_push(Token::GtEq, &mut chars),
                 _ => tokens.push(Token::Gt)
             }
-            '*' => {
-                chars.next();
-                tokens.push(Token::Mul)
+            '*' => tokenizer_consume_push(Token::Mul, &mut chars),
+            '/' => tokenizer_consume_push(Token::Div, &mut chars),
+            '+' => tokenizer_consume_push(Token::Plus, &mut chars),
+            '-' => tokenizer_consume_push(Token::Minus, &mut chars),
+            '=' => tokenizer_consume_push(Token::Eq, &mut chars),
+            '!' => match chars.peek() {
+                Some('=') => tokenizer_consume_push(Token::Neq, &mut chars),
+                Some(unexpected) => {
+                    let e = TokenizerError::UnexpectedAfterOperator{
+                        unexpected: *unexpected,
+                        operator: Token::Neq
+                    };
+                    errata.push(e);
+                }
+                None => errata.push(TokenizerError::OperatorNotClosed(Token::Neq))
             }
-            '/' => {
-                chars.next();
-                tokens.push(Token::Div)
-            }
-
-            '+' => {
-                chars.next();
-                tokens.push(Token::Plus)
-            }
-
-            '-' => {
-                chars.next();
-                tokens.push(Token::Minus)
-            }
-
-            '=' => {
-                chars.next();
-                tokens.push(Token::Eq)
-            }
+            '(' => tokenizer_consume_push(Token::LeftParen, &mut chars),
+            ')' => tokenizer_consume_push(Token::RightParen, &mut chars),
+            ',' => tokenizer_consume_push(Token::Comma, &mut chars),
+            ';' => tokenizer_consume_push(Token::SemiColon, &mut chars),
         }
     }
+}
 
+fn tokenizer_consume_push(token_variant: Token, chars: &mut Peekable<Chars>) {
+    chars.next();
+    tokens.push(token_variant);
 }
 
 fn keyword_or_identifier_str_to_enum_variant(sql: &str) -> Result<Token, TokenizerError>{
